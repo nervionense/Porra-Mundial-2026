@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Porra Mundial 2026 Online</title>
+<style>
+:root{--bg:#08101f;--card:#131a2e;--card2:#19233d;--text:#eef3ff;--muted:#9fb0d0;--line:#2a3a61;--gold:#ffd166;--green:#63e6be;--red:#ff6b6b}
+*{box-sizing:border-box} body{margin:0;background:linear-gradient(135deg,#08101f,#16213f 55%,#25133d);color:var(--text);font-family:Arial,sans-serif}
+header{padding:24px 18px;text-align:center;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(8,16,31,.94);z-index:10}
+h1{margin:0;font-size:32px} h2{margin:24px 0 12px} h3{color:var(--gold)}
+.wrap{max-width:1320px;margin:auto;padding:18px} .tabs{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:16px}
+button{border:0;border-radius:12px;padding:10px 14px;font-weight:700;cursor:pointer;background:var(--card2);color:var(--text)}
+button.active,button:hover{background:var(--gold);color:#111} .danger{background:#672235} .ok{background:#155a46}
+.card{background:rgba(19,26,46,.94);border:1px solid var(--line);border-radius:18px;padding:16px;margin:16px 0;box-shadow:0 8px 28px rgba(0,0,0,.24)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+table{width:100%;border-collapse:collapse;margin:10px 0} th,td{border-bottom:1px solid var(--line);padding:8px;vertical-align:middle} th{color:var(--gold);text-align:left;background:#10182d}
+input{width:100%;padding:9px;border-radius:10px;border:1px solid var(--line);background:#0c1324;color:var(--text)}
+input:disabled{opacity:.7} .small{font-size:13px;color:var(--muted)} .score{font-size:28px;font-weight:900;color:var(--gold)} .hide{display:none}
+.badge{display:inline-block;padding:4px 8px;border-radius:999px;background:#243353;color:var(--muted);font-size:12px}
+.rank{display:flex;justify-content:space-between;gap:12px;align-items:center;background:#10182d;border:1px solid var(--line);border-radius:16px;padding:14px;margin:10px 0}
+.rank:first-child{border-color:var(--gold)} .notice{border-left:5px solid var(--gold);padding-left:12px;color:var(--muted)} .admin{border:1px solid var(--gold)}
+</style>
+</head>
+<body>
+<header>
+  <h1>🏆 Porra Mundial 2026 Online</h1>
+  <div class="small" id="status">Conectando con Firebase...</div>
+  <div class="tabs">
+    <button class="tab active" data-tab="dashboard">Clasificación</button>
+    <button class="tab" data-tab="admin">Admin</button>
+    <button class="tab" data-tab="setup">Participantes</button>
+    <button class="tab" data-tab="groups">Grupos</button>
+    <button class="tab" data-tab="ko">Eliminatorias</button>
+    <button class="tab" data-tab="specials">Especiales</button>
+    <button class="tab" data-tab="rules">Normas</button>
+  </div>
+</header>
+
+<div class="wrap">
+<section id="dashboard" class="page">
+  <div class="card"><h2>Clasificación general</h2><div id="ranking"></div></div>
+</section>
+
+<section id="admin" class="page hide">
+  <div class="card admin">
+    <h2>Modo administrador</h2>
+    <p class="notice">Solo quien tenga la contraseña puede editar. Los demás pueden ver la porra online.</p>
+    <input id="adminPass" type="password" placeholder="Contraseña de edición">
+    <br><br>
+    <button class="ok" onclick="loginAdmin()">Entrar como administrador</button>
+    <button onclick="logoutAdmin()">Salir de admin</button>
+    <p class="small">Contraseña inicial: <b>mundial2026</b>. Luego puedes cambiarla dentro del código si quieres.</p>
+  </div>
+</section>
+
+<section id="setup" class="page hide">
+  <div class="card">
+    <h2>Participantes</h2>
+    <table><thead><tr><th>#</th><th>Nombre</th><th>Acción</th></tr></thead><tbody id="playersBody"></tbody></table>
+    <button class="ok editOnly" onclick="addPlayer()">➕ Añadir participante</button>
+    <button class="danger editOnly" onclick="resetAll()">Borrar todo</button>
+  </div>
+</section>
+
+<section id="groups" class="page hide">
+  <div class="card">
+    <h2>Fase de grupos</h2>
+    <p class="notice">1º correcto 5 puntos · 2º correcto 3 · 3º correcto 1 · 1º/2º invertidos 4 · grupo perfecto +5.</p>
+    <div id="groupsArea"></div>
+  </div>
+</section>
+
+<section id="ko" class="page hide">
+  <div class="card">
+    <h2>Eliminatorias · Supervivencia</h2>
+    <p class="notice">Octavos 2 · cuartos 4 · semifinales 8 · final 16 · campeón 32.</p>
+    <div id="koArea"></div>
+  </div>
+</section>
+
+<section id="specials" class="page hide">
+  <div class="card">
+    <h2>Apuestas especiales</h2>
+    <div id="specialsArea"></div>
+  </div>
+</section>
+
+<section id="rules" class="page hide">
+  <div class="card">
+    <h2>Normas</h2>
+    <p><b>Fase de grupos:</b> 1.º 5 puntos, 2.º 3 puntos, 3.º 1 punto, 4.º 0 puntos. Si 1.º y 2.º están invertidos: 4 puntos. Grupo perfecto: +5.</p>
+    <p><b>Eliminatorias:</b> octavos 2, cuartos 4, semifinales 8, final 16, campeón 32.</p>
+    <p><b>Bonus:</b> final exacta +10, tercer puesto +5.</p>
+    <p><b>Especiales:</b> equipo revelación, equipo decepción, Pichichi, Golden Glove, jugador revelación y jugador decepción: 14 puntos. Equipo más/menos goleador y grupo con más/menos goles: 10 puntos. Mejor defensa, centrocampista y delantero del XI ideal: 5 puntos.</p>
+  </div>
+</section>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBuQIsr9UslstSz6nYSs9PZqv1g5_0Ip20",
+  authDomain: "predicciones-mundial-26981.firebaseapp.com",
+  projectId: "predicciones-mundial-26981",
+  storageBucket: "predicciones-mundial-26981.firebasestorage.app",
+  messagingSenderId: "681358448234",
+  appId: "1:681358448234:web:7a902a96fef3abb7111c13",
+  measurementId: "G-D6SPFMWH9B"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const docRef = doc(db, "porra", "mundial2026");
+
+const ADMIN_PASSWORD = "mundial2026";
+let isAdmin = sessionStorage.getItem("porraAdmin")==="yes";
+let saveTimer = null;
+
+const G=12;
+const groupNames="ABCDEFGHIJKL".split("");
+const koRounds=[
+  ["r16","Octavos",2,16],
+  ["qf","Cuartos",4,8],
+  ["sf","Semifinales",8,4],
+  ["final","Final",16,2],
+  ["champ","Campeón",32,1],
+];
+const specials=[
+  ["finalExacta","Final exacta",10],
+  ["third","Tercer puesto",5],
+  ["teamSurprise","Equipo Revelación",14],
+  ["teamFlop","Equipo Decepción",14],
+  ["pichichi","Pichichi del Mundial",14],
+  ["glove","Golden Glove",14],
+  ["playerSurprise","Jugador Revelación",14],
+  ["playerFlop","Jugador Decepción",14],
+  ["mostGoalsTeam","Equipo más goleador",10],
+  ["fewestGoalsTeam","Equipo menos goleador",10],
+  ["mostGoalsGroup","Grupo con más goles",10],
+  ["fewestGoalsGroup","Grupo con menos goles",10],
+  ["bestDef","Mejor defensa del XI ideal",5],
+  ["bestMid","Mejor centrocampista del XI ideal",5],
+  ["bestAtt","Mejor delantero del XI ideal",5],
+];
+
+let data = initData();
+
+function initData(){
+  const initialPlayers=["David","Javier","Pelayo","Maka"];
+  return {
+    players:initialPlayers,
+    realGroups:Array.from({length:G},()=>["","","",""]),
+    predGroups:Array.from({length:initialPlayers.length},()=>Array.from({length:G},()=>["","","",""])),
+    realKO:Object.fromEntries(koRounds.map(r=>[r[0],Array(r[3]).fill("")])),
+    predKO:Array.from({length:initialPlayers.length},()=>Object.fromEntries(koRounds.map(r=>[r[0],Array(r[3]).fill("")]))),
+    realSpecials:Object.fromEntries(specials.map(s=>[s[0],""])),
+    predSpecials:Array.from({length:initialPlayers.length},()=>Object.fromEntries(specials.map(s=>[s[0],""])))
+  }
+}
+
+function esc(s){return String(s||"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));}
+function norm(x){return (x||"").trim().toLowerCase();}
+function val(id){return document.getElementById(id)?.value||""}
+function disabled(){return isAdmin ? "" : "disabled"}
+
+function render(){
+  renderPlayers(); renderGroups(); renderKO(); renderSpecials(); calcRanking(); updateAdminUI();
+}
+
+function updateAdminUI(){
+  document.querySelectorAll("input").forEach(i=>{ if(i.id!=="adminPass") i.disabled=!isAdmin; });
+  document.querySelectorAll(".editOnly").forEach(b=>b.style.display=isAdmin?"inline-block":"none");
+  document.getElementById("status").textContent = isAdmin ? "Modo administrador: puedes editar" : "Modo lectura: tus amigos pueden verlo, pero no editar";
+}
+
+function renderPlayers(){
+  let h="";
+  data.players.forEach((p,i)=>h+=`<tr><td>${i+1}</td><td><input id="player${i}" value="${esc(p)}" ${disabled()}></td><td><button class="danger editOnly" onclick="removePlayer(${i})">Eliminar</button></td></tr>`);
+  playersBody.innerHTML=h;
+}
+
+function renderGroups(){
+  let h="";
+  for(let g=0;g<G;g++){
+    h+=`<div class="card"><h3>Grupo ${groupNames[g]}</h3><div class="grid"><div><b>Resultado real</b><table>`;
+    for(let pos=0;pos<4;pos++) h+=`<tr><td>${pos+1}º</td><td><input id="rg_${g}_${pos}" value="${esc(data.realGroups[g][pos])}" ${disabled()}></td></tr>`;
+    h+=`</table></div>`;
+    for(let p=0;p<data.players.length;p++){
+      h+=`<div><b>${esc(data.players[p]||("Jugador "+(p+1)))}</b><table>`;
+      for(let pos=0;pos<4;pos++) h+=`<tr><td>${pos+1}º</td><td><input id="pg_${p}_${g}_${pos}" value="${esc(data.predGroups[p][g][pos])}" ${disabled()}></td></tr>`;
+      h+=`</table><span class="badge" id="gs_${p}_${g}">0 pts</span></div>`;
+    }
+    h+=`</div></div>`;
+  }
+  groupsArea.innerHTML=h;
+}
+
+function renderKO(){
+  let h="";
+  koRounds.forEach(([key,name,pts,count])=>{
+    h+=`<div class="card"><h3>${name} · ${pts} puntos por equipo</h3><div class="grid"><div><b>Real</b><table>`;
+    for(let i=0;i<count;i++)h+=`<tr><td>${i+1}</td><td><input id="rko_${key}_${i}" value="${esc(data.realKO[key][i])}" ${disabled()}></td></tr>`;
+    h+=`</table></div>`;
+    for(let p=0;p<data.players.length;p++){
+      h+=`<div><b>${esc(data.players[p])}</b><table>`;
+      for(let i=0;i<count;i++)h+=`<tr><td>${i+1}</td><td><input id="pko_${p}_${key}_${i}" value="${esc(data.predKO[p][key][i])}" ${disabled()}></td></tr>`;
+      h+=`</table></div>`;
+    }
+    h+=`</div></div>`;
+  });
+  koArea.innerHTML=h;
+}
+
+function renderSpecials(){
+  let h=`<table><thead><tr><th>Categoría</th><th>Puntos</th><th>Resultado real</th>${data.players.map(p=>`<th>${esc(p)}</th>`).join("")}</tr></thead><tbody>`;
+  specials.forEach(([key,name,pts])=>{
+    h+=`<tr><td>${name}</td><td>${pts}</td><td><input id="rs_${key}" value="${esc(data.realSpecials[key])}" ${disabled()}></td>`;
+    for(let p=0;p<data.players.length;p++) h+=`<td><input id="ps_${p}_${key}" value="${esc(data.predSpecials[p][key])}" ${disabled()}></td>`;
+    h+=`</tr>`;
+  });
+  h+=`</tbody></table>`;
+  specialsArea.innerHTML=h;
+}
+
+function groupScore(real,pred){
+  let score=0;
+  if(!real.some(norm)||!pred.some(norm))return 0;
+  if(norm(real[0]) && norm(real[0])===norm(pred[1]) && norm(real[1]) && norm(real[1])===norm(pred[0])) score+=4;
+  else{
+    if(norm(real[0])===norm(pred[0]) && norm(real[0])) score+=5;
+    if(norm(real[1])===norm(pred[1]) && norm(real[1])) score+=3;
+  }
+  if(norm(real[2])===norm(pred[2]) && norm(real[2])) score+=1;
+  if(real.every((x,i)=>norm(x)&&norm(x)===norm(pred[i]))) score+=5;
+  return score;
+}
+
+function calcRanking(){
+  let totals=data.players.map((name,p)=>({name:name||`Jugador ${p+1}`,groups:0,ko:0,special:0,total:0}));
+  for(let p=0;p<data.players.length;p++){
+    for(let g=0;g<G;g++){
+      let s=groupScore(data.realGroups[g],data.predGroups[p][g]);
+      totals[p].groups+=s;
+      let el=document.getElementById(`gs_${p}_${g}`); if(el)el.textContent=s+" pts";
+    }
+    koRounds.forEach(([key,,pts])=>{
+      let realSet=new Set(data.realKO[key].map(norm).filter(Boolean));
+      data.predKO[p][key].forEach(x=>{ if(realSet.has(norm(x))) totals[p].ko+=pts; });
+    });
+    specials.forEach(([key,,pts])=>{
+      if(norm(data.realSpecials[key]) && norm(data.realSpecials[key])===norm(data.predSpecials[p][key])) totals[p].special+=pts;
+    });
+    totals[p].total=totals[p].groups+totals[p].ko+totals[p].special;
+  }
+  totals.sort((a,b)=>b.total-a.total);
+  ranking.innerHTML=totals.map((t,i)=>`
+    <div class="rank"><div><b>${i+1}. ${esc(t.name)}</b><div class="small">Grupos: ${t.groups} · Eliminatorias: ${t.ko} · Especiales: ${t.special}</div></div><div class="score">${t.total}</div></div>`).join("");
+}
+
+function collect(){
+  for(let p=0;p<data.players.length;p++) data.players[p]=val(`player${p}`);
+  for(let g=0;g<G;g++){
+    for(let pos=0;pos<4;pos++){
+      data.realGroups[g][pos]=val(`rg_${g}_${pos}`);
+      for(let p=0;p<data.players.length;p++) data.predGroups[p][g][pos]=val(`pg_${p}_${g}_${pos}`);
+    }
+  }
+  koRounds.forEach(([key,, ,count])=>{
+    for(let i=0;i<count;i++){
+      data.realKO[key][i]=val(`rko_${key}_${i}`);
+      for(let p=0;p<data.players.length;p++) data.predKO[p][key][i]=val(`pko_${p}_${key}_${i}`);
+    }
+  });
+  specials.forEach(([key])=>{
+    data.realSpecials[key]=val(`rs_${key}`);
+    for(let p=0;p<data.players.length;p++) data.predSpecials[p][key]=val(`ps_${p}_${key}`);
+  });
+}
+
+async function saveOnline(){
+  if(!isAdmin) return;
+  collect();
+  await setDoc(docRef, data);
+}
+
+function queueSave(){
+  if(!isAdmin) return;
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(saveOnline,600);
+}
+
+window.addPlayer=async function(){
+  if(!isAdmin) return;
+  collect();
+  data.players.push("Nuevo participante");
+  data.predGroups.push(Array.from({length:G},()=>["","","",""]));
+  data.predKO.push(Object.fromEntries(koRounds.map(r=>[r[0],Array(r[3]).fill("")])));
+  data.predSpecials.push(Object.fromEntries(specials.map(s=>[s[0],""])));
+  await setDoc(docRef,data);
+}
+
+window.removePlayer=async function(i){
+  if(!isAdmin) return;
+  if(data.players.length<=1){alert("Tiene que quedar al menos un participante.");return;}
+  if(confirm("¿Eliminar participante?")){
+    collect();
+    data.players.splice(i,1);
+    data.predGroups.splice(i,1);
+    data.predKO.splice(i,1);
+    data.predSpecials.splice(i,1);
+    await setDoc(docRef,data);
+  }
+}
+
+window.resetAll=async function(){
+  if(!isAdmin) return;
+  if(confirm("¿Seguro que quieres borrar toda la porra?")){
+    data=initData();
+    await setDoc(docRef,data);
+  }
+}
+
+window.loginAdmin=function(){
+  if(document.getElementById("adminPass").value===ADMIN_PASSWORD){
+    isAdmin=true;
+    sessionStorage.setItem("porraAdmin","yes");
+    render();
+  } else alert("Contraseña incorrecta");
+}
+
+window.logoutAdmin=function(){
+  isAdmin=false;
+  sessionStorage.removeItem("porraAdmin");
+  render();
+}
+
+document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+  b.classList.add("active");
+  document.querySelectorAll(".page").forEach(p=>p.classList.add("hide"));
+  document.getElementById(b.dataset.tab).classList.remove("hide");
+});
+
+window.addEventListener("input", queueSave);
+
+onSnapshot(docRef, async snap=>{
+  if(snap.exists()) data=snap.data();
+  else await setDoc(docRef, initData());
+  render();
+}, err=>{
+  document.getElementById("status").textContent="Error conectando con Firebase. Revisa Firestore y las reglas.";
+  console.error(err);
+});
+</script>
+</body>
+</html>
