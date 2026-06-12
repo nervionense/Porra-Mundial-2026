@@ -1,0 +1,35 @@
+APP PWA - PORRA MUNDIAL 2026
+
+Sube estos archivos junto a tu index.html:
+
+- manifest.json
+- service-worker.js
+- icon-192.png
+- icon-512.png
+
+Luego abre index.html y añade:
+
+1) Dentro de <head>:
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#08101f">
+<link rel="apple-touch-icon" href="icon-192.png">
+
+2) Antes de </body>:
+
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js")
+      .catch(error => console.log("Service Worker error:", error));
+  });
+}
+</script>
+
+Después sube todo a GitHub.
+
+Android:
+Chrome > tres puntos > Instalar aplicación.
+
+iPhone:
+Safari > Compartir > Añadir a pantalla de inicio.
